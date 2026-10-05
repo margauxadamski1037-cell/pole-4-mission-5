@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>La roue des réclamations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;600;700&display=swap">
+<style>
+/* Layout : bandeau ; consigne + élève ; roue + client en cours ; fin et sauvegarde ; journal des réclamations */
+:root {
+  --bg: #f4f2f1;
+  --surface: #ffffff;
+  --ink: #1b1a1a;
+  --muted: #615b59;
+  --line: #d9d3d1;
+  --red: #e30613;
+  --red-soft: #fde6e7;
+  --black: #111111;
+  --ok: #1d7a3a;
+  --ok-soft: #e3f3e8;
+  --belt: #3b3836;
+  --field: #faf8f7;
+  --screen: #0f2a3a;
+  --screen-ink: #bfe6ff;
+  --paper: #fffef8;
+  --display: "Archivo Black", "Arial Black", "Helvetica Neue", Arial, sans-serif;
+  --body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --mono: "Courier New", Courier, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161414; --surface: #211e1e; --ink: #f3efee; --muted: #b3aba8; --line: #3a3534;
+    --red: #ff3b45; --red-soft: #3a1416; --black: #000000; --ok: #4cc472; --ok-soft: #142b1c; --field: #2a2626;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161414; --surface: #211e1e; --ink: #f3efee; --muted: #b3aba8; --line: #3a3534;
+  --red: #ff3b45; --red-soft: #3a1416; --black: #000000; --ok: #4cc472; --ok-soft: #142b1c; --field: #2a2626;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45; margin: 0; }
+.wrap { max-width: 1100px; margin: 0 auto; padding-inline: 16px; padding-block: 0 40px; }
+header.brand { background: var(--black); color: #fff; }
+header.brand .wrap { padding-block: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; }
+.logo { background: #e30613; color: #fff; font-family: var(--display); font-size: 20px; padding: 6px 12px; letter-spacing: .02em; }
+header.brand h1 { font-family: var(--display); font-weight: 400; font-size: clamp(20px, 3.2vw, 30px); margin: 0; text-wrap: balance; }
+header.brand h1 span { color: #ff3b45; }
+header.brand p { margin: 0; flex-basis: 100%; color: #d6d0ce; font-size: 14px; }
+
+.card { background: var(--surface); border: 1px solid var(--line); padding: 16px 18px; min-width: 0; }
+.top { margin-top: 20px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; }
+.top h2 { font-family: var(--display); font-weight: 400; font-size: 17px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: .03em; }
+.top h2 .tag { color: var(--red); }
+.top p { margin: 0 0 6px; }
+.muted { color: var(--muted); font-size: 14px; }
+label.lb { display: block; font-weight: 600; margin-bottom: 6px; }
+input[type=text], textarea { width: 100%; font: inherit; padding: 9px 10px; border: 2px solid var(--line); background: var(--field); color: var(--ink); }
+textarea { min-height: 90px; resize: vertical; }
+input:focus-visible, textarea:focus-visible { outline: 3px solid var(--red); outline-offset: 1px; }
+
+.pips { display: flex; gap: 6px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
+.pips .lbl { font-weight: 700; margin-right: 6px; }
+.pip { width: 34px; height: 34px; display: grid; place-items: center; border: 2px solid var(--line); background: var(--surface); font-weight: 800; color: var(--muted); }
+.pip.on { background: var(--ok); border-color: var(--ok); color: #fff; }
+
+.game { margin-top: 16px; display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.wheelbox { text-align: center; }
+.wheelwrap { position: relative; width: min(100%, 340px); margin: 0 auto; aspect-ratio: 1; }
+.pointer { position: absolute; left: 50%; top: -6px; transform: translateX(-50%); width: 0; height: 0; border-left: 16px solid transparent; border-right: 16px solid transparent; border-top: 30px solid var(--ink); z-index: 2; filter: drop-shadow(0 2px 0 rgba(0,0,0,.25)); }
+#wheel { width: 100%; height: 100%; display: block; pointer-events: none; transition: transform 3.6s cubic-bezier(.17,.67,.21,1); }
+#wheel text { font-family: var(--body); font-weight: 700; fill: #fff; font-size: 11px; }
+#wheel .ini { font-family: var(--display); font-size: 16px; fill: #111; }
+#wheel .done-t { font-family: var(--display); font-size: 12px; fill: #fff; }
+.hub { position: absolute; inset: 0; margin: auto; width: 74px; height: 74px; border-radius: 50%; background: #fff; border: 5px solid #111; display: grid; place-items: center; font-family: var(--display); color: #e30613; font-size: 13px; z-index: 1; }
+.spin { margin-top: 14px; font-size: 17px; padding: 12px 22px; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+.client .who { display: flex; gap: 12px; align-items: center; }
+.client .av, .entry .av { flex: none; width: 46px; height: 46px; border-radius: 50%; background: #e30613; color: #fff; display: inline-grid; place-items: center; font-family: var(--display); font-size: 20px; }
+.entry .av { width: 26px; height: 26px; font-size: 13px; margin-right: 6px; vertical-align: middle; }
+.client .nm { font-family: var(--display); font-size: 18px; }
+.client .bubble { margin-top: 10px; background: var(--surface); border: 2px solid var(--black); padding: 12px 14px; font-size: 16px; font-style: italic; position: relative; }
+.empty { color: var(--muted); padding: 30px 10px; text-align: center; }
+.q { margin-top: 16px; }
+.q > .ql { display: flex; gap: 8px; align-items: center; font-weight: 700; margin-bottom: 8px; }
+.q .n { display: inline-grid; place-items: center; width: 26px; height: 26px; background: var(--black); color: #fff; font-weight: 800; flex: none; }
+.opts { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.opts.long { grid-template-columns: 1fr; }
+.opt { appearance: none; font: inherit; font-weight: 600; background: var(--surface); color: var(--ink); border: 2px solid var(--line); padding: 10px 12px; cursor: pointer; text-align: left; }
+.opt:hover { border-color: var(--red); }
+.opt[aria-pressed="true"] { border-color: var(--red); background: var(--red-soft); }
+.opt:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+
+.log { margin-top: 16px; }
+.log h2 { font-family: var(--display); font-weight: 400; font-size: 17px; text-transform: uppercase; margin: 0 0 10px; }
+.entry { border-top: 1px solid var(--line); padding: 10px 0; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; }
+.entry b { font-size: 15px; }
+.entry .d { color: var(--muted); font-size: 13px; grid-column: 1; }
+.entry .btn { grid-row: 1 / span 2; grid-column: 2; align-self: center; padding: 6px 10px; font-size: 13px; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn { appearance: none; font: inherit; font-weight: 700; padding: 10px 16px; border: 2px solid var(--black); cursor: pointer; background: var(--surface); color: var(--ink); }
+.btn.primary { background: #e30613; border-color: #e30613; color: #fff; }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.msgline { font-size: 14px; color: var(--muted); margin: 10px 0 0; }
+.msgline.warn { color: var(--red); font-weight: 700; }
+.finish { margin-top: 16px; border-left: 6px solid var(--ok); }
+.finish h2 { font-family: var(--display); font-weight: 400; font-size: 18px; margin: 0 0 6px; }
+.linkbox { margin-top: 12px; border: 2px solid var(--red); background: var(--red-soft); padding: 12px 14px; }
+.linkbox p { margin: 0 0 8px; font-size: 14px; }
+.linkbox .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.linkbox input { flex: 1 1 200px; min-width: 0; font-size: 13px; }
+.linkbox .small { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+@media (max-width: 860px) { .top, .game { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { #wheel { transition-duration: .6s; } }
+</style>
+</head>
+<body>
+
+
+<header class="brand">
+  <div class="wrap">
+    <div class="logo">DARTY</div>
+    <h1>La roue des <span>réclamations</span></h1>
+    <p>Magasin Darty de Pont-à-Mousson · Pôle caisse et services · Mission 5 · Vendredi 27 novembre 2026 – caisse n° 2</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="top">
+    <div class="card">
+      <h2><span class="tag">17 h 30</span> · Le pic du Black Friday</h2>
+      <p>Les réclamations s'enchaînent à votre caisse ! Faites tourner la roue : elle vous donne un client mécontent. Traitez sa réclamation en suivant les <b>4 étapes</b>, puis tournez à nouveau. Attention : on ne fait pas la même chose pour une réclamation simple et pour une réclamation complexe !</p>
+      <p><b>Objectif : traiter 5 réclamations.</b></p>
+      <p class="muted">Aidez-vous de la fiche « Méthode pour traiter une réclamation » de votre document Word.</p>
+    </div>
+    <div class="card">
+      <label class="lb" for="nom">Prénom et nom de l'élève</label>
+      <input id="nom" type="text" autocomplete="off" placeholder="Ex. : Léa MARTIN">
+      <div class="pips" id="pips" aria-label="Réclamations traitées"></div>
+    </div>
+  </section>
+
+  <section class="game">
+    <div class="card wheelbox">
+      <div class="wheelwrap">
+        <div class="pointer" aria-hidden="true"></div>
+        <svg id="wheel" viewBox="-160 -160 320 320" role="img" aria-label="Roue des réclamations"></svg>
+        <div class="hub" aria-hidden="true">DARTY</div>
+      </div>
+      <button class="btn primary spin" id="spin" type="button">Tourner la roue</button>
+    </div>
+
+    <div class="card client" id="client" aria-live="polite"></div>
+  </section>
+
+  <section class="card finish" id="finish" hidden>
+    <h2>Bravo, vous avez traité 5 réclamations !</h2>
+    <p class="muted" style="margin:0 0 12px">Vérifiez vos réponses ci-dessous, puis enregistrez votre travail et collez le lien dans votre document Word.</p>
+    <div class="actions"><button class="btn primary" id="save" type="button">Enregistrer mon travail</button></div>
+    <div class="linkbox" id="linkbox" hidden>
+      <p><b>Votre lien de sauvegarde est prêt.</b> Copiez-le et collez-le dans votre document Word : il permet de retrouver votre travail sur n'importe quel ordinateur.</p>
+      <div class="row"><input id="link" type="text" readonly aria-label="Lien de sauvegarde"><button class="btn primary" id="copy" type="button">Copier le lien</button></div>
+      <p class="small">Si vous modifiez votre travail, cliquez de nouveau sur « Enregistrer mon travail » et remplacez l'ancien lien.</p>
+    </div>
+  </section>
+
+  <section class="card log" id="log" hidden>
+    <h2>Mes réclamations traitées</h2>
+    <div id="entries"></div>
+  </section>
+
+  <section class="card" style="margin-top:16px">
+    <div class="actions">
+      <button class="btn" id="save2" type="button">Enregistrer en cours de route</button>
+      <button class="btn ghost" id="reset" type="button">Tout recommencer</button>
+    </div>
+    <p class="msgline" id="msg" aria-live="polite">Écrivez votre nom, puis faites tourner la roue.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  var APP = "darty-roue-reclamations", KEY = "darty-roue-v1", GOAL = 5;
+  var CL = [
+    { id: "be", av: "B", nm: "Mme Belkacem", q: "Ça fait 25 minutes que je fais la queue ! Une seule caisse ouverte un jour de Black Friday, c'est n'importe quoi !",
+      so: ["Je lui dis que c'est le Black Friday et qu'il fallait venir plus tôt.",
+           "Je lui offre un bon d'achat de 20 € pour la calmer.",
+           "Je scanne ses articles très vite, sans rien lui dire."] },
+    { id: "du", av: "D", nm: "M. Duval", q: "Le vendeur du rayon m'a parlé très sèchement quand je lui ai posé une question. Ce n'est pas normal !",
+      so: ["Je lui dis que mon collègue est fatigué aujourd'hui, ce n'est pas grave.",
+           "Je vais moi-même dire au vendeur qu'il a mal parlé au client.",
+           "Je lui réponds que ce n'est pas mon problème, je suis en caisse."] },
+    { id: "ok", av: "O", nm: "Mme Okafor", q: "Le carton de l'aspirateur que je viens de prendre en rayon est tout abîmé ! Je ne vais pas payer pour ça !",
+      so: ["Je vais chercher le même aspirateur, dans un carton en bon état, à la réserve.",
+           "Je lui explique que c'est seulement le carton, le produit à l'intérieur est bon.",
+           "Je lui fais une remise de 50 € pour le carton abîmé."] },
+    { id: "fe", av: "F", nm: "M. Ferreira", q: "Votre terminal ne marche pas, je ne peux pas payer par carte ! Je fais comment, moi ?",
+      so: ["Je lui demande de revenir payer plus tard, quand le terminal remarchera.",
+           "Je redémarre le terminal. Si ça ne marche toujours pas, je lui propose un autre moyen de paiement.",
+           "Je lui dis qu'il doit obligatoirement payer en espèces."] },
+    { id: "le", av: "L", nm: "Mme Lenoir", q: "Il n'y a plus de sacs à votre caisse ? Je porte tout dans les bras, alors ?",
+      so: ["Je lui réponds qu'il fallait apporter son propre sac.",
+           "Je lui donne un vieux carton qui traîne derrière la caisse.",
+           "Je m'excuse et je vais chercher des sacs à la réserve (ou je demande à un collègue de m'en apporter)."] },
+    { id: "ha", av: "H", nm: "M. Haddad", q: "Le robot cuiseur du prospectus n'est plus en rayon ! Vous faites de la publicité pour des produits que vous n'avez pas, c'est de l'arnaque !",
+      so: ["Je lui promets que le produit arrive demain matin.",
+           "Je lui dis que ce n'est pas mon rayon, je ne peux rien faire.",
+           "Je lui vends un autre robot cuiseur au prix promo du prospectus."] },
+    { id: "ng", av: "N", nm: "Mme Nguyen", q: "Attendez ! Sur votre écran, je vois que vous avez compté deux fois le même câble HDMI ! Je ne vais pas payer deux fois !",
+      so: ["Je lui réponds que la caisse ne se trompe jamais.",
+           "Je vérifie l'écran avec elle, je m'excuse et j'annule la ligne en double avant qu'elle paie.",
+           "Je lui dis d'écrire au service client de Darty."] }
+  ];
+  var TY = ["Le produit", "Le personnel", "Le magasin (attente, matériel, organisation…)"], SC = ["Simple : je peux la régler moi-même", "Complexe : je la transfère au responsable"];
+  var byId = {}; CL.forEach(function (c, i) { c.i = i; byId[c.id] = c; });
+  var S = { done: [], cur: "", ans: {} }, rot = 0, spinning = false;
+  var nom = document.getElementById("nom"), msg = document.getElementById("msg"), wheel = document.getElementById("wheel");
+  function say(t, w) { msg.textContent = t; msg.classList.toggle("warn", !!w); }
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  // ---------- roue
+  function drawWheel() {
+    var h = "", n = CL.length, r = 150;
+    CL.forEach(function (c, i) {
+      var a0 = (i * 360 / n - 90) * Math.PI / 180, a1 = ((i + 1) * 360 / n - 90) * Math.PI / 180;
+      var x0 = r * Math.cos(a0), y0 = r * Math.sin(a0), x1 = r * Math.cos(a1), y1 = r * Math.sin(a1);
+      var done = S.done.indexOf(c.id) >= 0;
+      var fill = done ? "#9a9390" : ["#e30613", "#111111", "#b8000d"][i % 2 + (i === n - 1 && n % 2 ? 2 : 0)];
+      var mid = (i + 0.5) * 360 / n;
+      h += '<path d="M0 0 L' + x0.toFixed(1) + ' ' + y0.toFixed(1) + ' A' + r + ' ' + r + ' 0 0 1 ' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' Z" fill="' + fill + '" stroke="#fff" stroke-width="3"/>';
+      h += '<g transform="rotate(' + mid + ')">' + (done ? '<text class="done-t" x="0" y="-124" text-anchor="middle" dominant-baseline="middle">FAIT</text>' :
+           '<circle cx="0" cy="-124" r="16" fill="#fff"/><text class="ini" x="0" y="-123" text-anchor="middle" dominant-baseline="middle">' + c.av + '</text>') +
+           '<text x="0" y="-92" text-anchor="middle">' + esc(c.nm) + '</text></g>';
+    });
+    h += '<circle r="152" fill="none" stroke="#111" stroke-width="6"/>';
+    wheel.innerHTML = h;
+  }
+  function setRot(deg, anim) {
+    wheel.style.transition = anim ? "" : "none";
+    wheel.style.transform = "rotate(" + deg + "deg)";
+    if (!anim) { void wheel.getBoundingClientRect(); wheel.style.transition = ""; }
+  }
+  function pointTo(id, anim) {
+    var i = byId[id].i, target = -((i + 0.5) * 360 / CL.length);
+    var base = anim ? rot + 360 * 4 : rot;
+    var d = ((target - base) % 360 + 360) % 360;
+    rot = base + d; setRot(rot, anim);
+  }
+  document.getElementById("spin").addEventListener("click", function () {
+    if (spinning) return;
+    if (!nom.value.trim()) { say("Écrivez d'abord votre prénom et votre nom.", true); nom.focus(); return; }
+    if (S.cur) { say("Terminez d'abord la réclamation de " + byId[S.cur].nm + ".", true); return; }
+    if (S.done.length >= GOAL) { say("Vous avez déjà traité 5 réclamations : enregistrez votre travail.", true); return; }
+    var free = CL.filter(function (c) { return S.done.indexOf(c.id) < 0; });
+    var pick = free[Math.floor(Math.random() * free.length)];
+    spinning = true; render(); say("La roue tourne…");
+    pointTo(pick.id, true);
+    var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setTimeout(function () {
+      spinning = false; S.cur = pick.id; S.ans[pick.id] = S.ans[pick.id] || { ty: -1, sc: -1, so: -1, tx: "", tm: "" };
+      save(); render(); say(pick.nm + " arrive à votre caisse. Traitez sa réclamation.");
+    }, reduce ? 700 : 3700);
+  });
+
+  // ---------- client en cours
+  var client = document.getElementById("client");
+  function optBtns(name, list, sel, long) {
+    return '<div class="opts' + (long ? " long" : "") + '">' + list.map(function (t, k) {
+      return '<button type="button" class="opt" data-k="' + name + '" data-v="' + k + '" aria-pressed="' + (sel === k) + '">' + esc(t) + '</button>';
+    }).join("") + '</div>';
+  }
+  function drawClient() {
+    if (!S.cur) {
+      client.innerHTML = '<div class="empty">' + (spinning ? "La roue tourne…" :
+        (S.done.length >= GOAL ? "Mission terminée : enregistrez votre travail plus bas." : "Faites tourner la roue pour faire venir un client à votre caisse.")) + '</div>';
+      return;
+    }
+    var c = byId[S.cur], a = S.ans[c.id];
+    client.innerHTML =
+      '<div class="who"><span class="av">' + c.av + '</span><span class="nm">' + esc(c.nm) + '</span></div>' +
+      '<div class="bubble">« ' + esc(c.q) + ' »</div>' +
+      '<div class="q"><div class="ql"><span class="n">1</span>Quel est le type de réclamation ?</div>' + optBtns("ty", TY, a.ty) + '</div>' +
+      '<div class="q"><div class="ql"><span class="n">2</span>Est-elle simple ou complexe ?</div>' + optBtns("sc", SC, a.sc) + '</div>' +
+      (a.sc < 0 ? '<p class="muted" style="margin-top:14px">Les étapes 3 et 4 apparaissent quand vous avez répondu à l\'étape 2.</p>' :
+       a.sc === 0 ?
+        '<div class="q"><div class="ql"><span class="n">3</span>Réclamation simple : je choisis l\'action corrective que je réalise moi-même</div>' + optBtns("so", c.so, a.so, true) + '</div>' +
+        '<div class="q"><label class="ql" for="tx"><span class="n">4</span>Ce que je dis au client (je reformule, puis j\'explique la solution)</label>' +
+        '<textarea id="tx" placeholder="« Je comprends, Madame / Monsieur… »">' + esc(a.tx) + '</textarea></div>'
+       :
+        '<div class="q"><label class="ql" for="tm"><span class="n">3</span>Réclamation complexe : j\'écris mon message à M. Tabilo (je résume la réclamation et je lui demande d\'intervenir)</label>' +
+        '<textarea id="tm" placeholder="« Monsieur Tabilo, un client… »">' + esc(a.tm) + '</textarea></div>' +
+        '<div class="q"><label class="ql" for="tx"><span class="n">4</span>Ce que je dis au client (je reformule, je m\'excuse et j\'explique que je préviens mon responsable)</label>' +
+        '<textarea id="tx" placeholder="« Je comprends, Madame / Monsieur… »">' + esc(a.tx) + '</textarea></div>') +
+      '<div class="actions" style="margin-top:14px"><button class="btn primary" id="ok" type="button">Réclamation traitée</button></div>';
+    client.querySelectorAll(".opt").forEach(function (b) {
+      b.addEventListener("click", function () {
+        a[b.dataset.k] = +b.dataset.v;
+        if (b.dataset.k === "sc") { save(); drawClient(); return; }
+        b.parentNode.querySelectorAll(".opt").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+        save();
+      });
+    });
+    var tx = document.getElementById("tx"), tm = document.getElementById("tm");
+    if (tx) tx.addEventListener("input", function () { a.tx = tx.value; save(); });
+    if (tm) tm.addEventListener("input", function () { a.tm = tm.value; save(); });
+    document.getElementById("ok").addEventListener("click", function () {
+      if (a.ty < 0) return say("Étape 1 : choisissez le type de réclamation.", true);
+      if (a.sc < 0) return say("Étape 2 : dites si la réclamation est simple ou complexe.", true);
+      if (a.sc === 0 && a.so < 0) return say("Étape 3 : choisissez l'action corrective.", true);
+      if (a.sc === 1 && a.tm.trim().length < 25) return say("Étape 3 : écrivez votre message à M. Tabilo (au moins une phrase complète).", true);
+      if (a.tx.trim().length < 25) return say("Étape 4 : écrivez ce que vous dites au client (au moins une phrase complète).", true);
+      if (S.done.indexOf(c.id) < 0) S.done.push(c.id);
+      S.cur = ""; save(); render();
+      say(S.done.length >= GOAL ? "Bravo ! Vous avez traité 5 réclamations. Enregistrez votre travail." : "Réclamation enregistrée. Faites tourner la roue pour le client suivant.");
+      if (S.done.length >= GOAL) document.getElementById("finish").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  // ---------- journal
+  function drawLog() {
+    var log = document.getElementById("log"), e = document.getElementById("entries");
+    log.hidden = !S.done.length;
+    e.innerHTML = S.done.map(function (id) {
+      var c = byId[id], a = S.ans[id];
+      return '<div class="entry"><b><span class="av">' + c.av + '</span>' + esc(c.nm) + '</b>' +
+        '<span class="d">Type : ' + esc(TY[a.ty]) + ' · ' + esc(SC[a.sc].split(" :")[0]) + (a.sc === 0 ? ' · Action corrective : ' + esc(c.so[a.so]) : '<br>Message à M. Tabilo : « ' + esc(a.tm) + ' »') + '<br>Ce que je dis : « ' + esc(a.tx) + ' »</span>' +
+        '<button class="btn ghost" type="button" data-edit="' + id + '">Modifier</button></div>';
+    }).join("");
+    e.querySelectorAll("[data-edit]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        if (S.cur && S.cur !== b.dataset.edit) return say("Terminez d'abord la réclamation de " + byId[S.cur].nm + ".", true);
+        S.cur = b.dataset.edit; save(); render(); pointTo(S.cur, false);
+        client.scrollIntoView({ behavior: "smooth", block: "start" }); say("Vous pouvez modifier vos réponses, puis cliquer sur « Réclamation traitée ».");
+      });
+    });
+  }
+  function render() {
+    drawWheel(); drawClient(); drawLog();
+    var p = '<span class="lbl">Réclamations traitées :</span>';
+    for (var i = 0; i < GOAL; i++) p += '<span class="pip' + (i < S.done.length ? " on" : "") + '">' + (i + 1) + '</span>';
+    document.getElementById("pips").innerHTML = p;
+    var sp = document.getElementById("spin"); sp.disabled = spinning || !!S.cur || S.done.length >= GOAL;
+    document.getElementById("finish").hidden = S.done.length < GOAL;
+  }
+
+  // ---------- sauvegarde
+  function state() {
+    var an = {}; Object.keys(S.ans).forEach(function (k) { var a = S.ans[k]; an[k] = [a.ty, a.sc, a.so, a.tx, a.tm]; });
+    return { app: APP, nom: nom.value, d: S.done.join(","), c: S.cur, a: an };
+  }
+  function apply(o) {
+    nom.value = o.nom || "";
+    var an = {}; Object.keys(o.a || {}).forEach(function (k) { if (byId[k]) { var v = o.a[k]; an[k] = { ty: +v[0], sc: +v[1], so: +v[2], tx: v[3] || "", tm: v[4] || "" }; } });
+    S = { done: (o.d || "").split(",").filter(function (x) { return byId[x] && an[x]; }).slice(0, GOAL), cur: byId[o.c] && an[o.c] ? o.c : "", ans: an };
+    render(); if (S.cur) pointTo(S.cur, false);
+  }
+  function enc(o) { return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
+  function dec(t) { t = t.replace(/-/g, "+").replace(/_/g, "/"); while (t.length % 4) t += "="; return JSON.parse(decodeURIComponent(escape(atob(t)))); }
+  function save() { try { history.replaceState(null, "", "#t=" + enc(state())); } catch (e) {} try { localStorage.setItem(KEY, JSON.stringify(state())); } catch (e) {} }
+  nom.addEventListener("input", save);
+
+  var linkbox = document.getElementById("linkbox"), linkIn = document.getElementById("link");
+  function showLink() {
+    save(); linkIn.value = location.href.split("#")[0] + "#t=" + enc(state());
+    document.getElementById("finish").hidden = false; linkbox.hidden = false;
+    linkIn.focus(); linkIn.select();
+    say(S.done.length >= GOAL ? "Travail enregistré. Copiez le lien et collez-le dans votre document Word."
+        : "Travail enregistré en cours de route (" + S.done.length + " / 5). Copiez le lien pour reprendre plus tard.");
+  }
+  document.getElementById("save").addEventListener("click", showLink);
+  document.getElementById("save2").addEventListener("click", function () {
+    if (!nom.value.trim()) { say("Écrivez d'abord votre prénom et votre nom.", true); nom.focus(); return; }
+    showLink(); linkbox.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+  document.getElementById("copy").addEventListener("click", function () {
+    var done = function () { say("Lien copié ! Collez-le dans votre document Word (Ctrl + V)."); };
+    try { navigator.clipboard.writeText(linkIn.value).then(done, function () { linkIn.select(); document.execCommand("copy"); done(); }); }
+    catch (e) { linkIn.select(); try { document.execCommand("copy"); done(); } catch (e2) { say("Sélectionnez le lien puis faites Ctrl + C pour le copier.", true); } }
+  });
+  var armed = false, resetBtn = document.getElementById("reset");
+  resetBtn.addEventListener("click", function () {
+    if (!armed) { armed = true; resetBtn.textContent = "Confirmer : tout recommencer ?"; return; }
+    armed = false; resetBtn.textContent = "Tout recommencer";
+    apply({ nom: nom.value }); save(); linkbox.hidden = true; rot = 0; setRot(0, false);
+    say("Mission remise à zéro. Faites tourner la roue."); window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  var loaded = false;
+  if (location.hash.indexOf("#t=") === 0) {
+    try { var o = dec(location.hash.slice(3)); if (o.app === APP) { apply(o); loaded = true; say("Travail retrouvé grâce à votre lien de sauvegarde."); } }
+    catch (e) { say("Ce lien de sauvegarde est incomplet. Vérifiez que vous avez bien copié tout le lien.", true); }
+  }
+  if (!loaded) { try { var sv = JSON.parse(localStorage.getItem(KEY) || "null"); if (sv && sv.app === APP) { apply(sv); loaded = true; if (sv.d || sv.c) say("Votre travail précédent a été retrouvé sur cet ordinateur."); } } catch (e) {} }
+  if (!loaded) render();
+})();
+</script>
+
+</body>
+</html>
